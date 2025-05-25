@@ -1,11 +1,10 @@
-import hashlib
 import functools
-from pathlib import Path
-from typing import Callable, Any
+import hashlib
 import inspect
+from pathlib import Path
+from typing import Any, Callable
 
 import pandas as pd
-
 
 DEFAULT_CACHE_DIR = Path.home() / ".cache" / "dfcache"
 
@@ -20,7 +19,7 @@ def dfcache(
 
     Can be used as:
     - @dfcache (with default settings)
-    - @dfcache(cache_dir="path", max_size=100, ignore_args=["arg1"])
+    - @dfcache(cache_dir="path")
 
     Args:
         func: The function to decorate (used when called without parentheses)
@@ -38,7 +37,7 @@ def dfcache(
         def wrapper(*args, **kwargs):
             # Create a cache key based on function name, args, and kwargs
             cache_key = _create_cache_key(f, args, kwargs)
-            cache_file = cache_path / f"{cache_key}.parquet"
+            cache_file = cache_path / f"{_get_func_name(f)}_{cache_key}.parquet"
 
             # Try to load from cache
             if cache_file.exists():
@@ -55,7 +54,7 @@ def dfcache(
             # Only cache if result is a DataFrame
             if isinstance(result, pd.DataFrame):
                 try:
-                    result.to_parquet()
+                    result.to_parquet(cache_file)
 
                 except Exception as e:  # TODO: What errors can happen here?
                     # If caching fails, continue without caching
@@ -67,7 +66,7 @@ def dfcache(
         # Add cache management methods
         def clear_cache():
             """Clear all cached results for this function."""
-            func_prefix = f.__name__
+            func_prefix = _get_func_name(f)
             for cache_file in cache_path.glob(f"*{func_prefix}*.parquet"):
                 cache_file.unlink(missing_ok=True)
 
@@ -83,6 +82,10 @@ def dfcache(
     else:
         # Called without arguments: @dfcache
         return decorator(func)
+
+
+def _get_func_name(func: Any) -> str:
+    return f"{func.__module__}_{func.__qualname__.replace('.', '_')}"
 
 
 def _create_cache_key(func: Callable, args: tuple, kwargs: dict) -> str:
@@ -132,52 +135,3 @@ def _make_hashable(obj: Any) -> Any:
         return None
     else:
         return obj
-
-
-if __name__ == "__main__":
-    # Test the decorator with both usage patterns
-
-    @dfcache()
-    def load_data(file_id: int, filter_col: str = "default") -> pd.DataFrame:
-        """Simulate loading data."""
-        print(f"Loading data for file_id={file_id}, filter_col={filter_col}")
-        return pd.DataFrame(
-            {
-                "id": range(file_id * 10),
-                "value": range(file_id * 10, file_id * 20),
-                "filter": [filter_col] * (file_id * 10),
-            }
-        )
-
-    @dfcache(cache_dir="custom_cache")
-    def process_data(df: pd.DataFrame, multiplier: int = 1) -> pd.DataFrame:
-        """Simulate data processing."""
-        print(f"Processing data with multiplier={multiplier}")
-        result = df.copy()
-        result["value"] = result["value"] * multiplier
-        return result
-
-    class DataProcessor:
-        @dfcache
-        def transform(self, data: pd.DataFrame, operation: str = "sum") -> pd.DataFrame:
-            """Transform data based on operation."""
-            print(f"Transforming data with operation={operation}")
-            if operation == "sum":
-                return data.groupby("filter").sum().reset_index()
-            return data
-
-    # Test usage
-    print("Testing dfcache decorator:")
-
-    # First call - will execute and cache
-    df1 = load_data(5, "test")
-    print(f"Result shape: {df1.shape}")
-
-    # Second call - will load from cache
-    df2 = load_data(5, "test")
-    print(f"Result shape: {df2.shape}")
-
-    # Test with class method
-    processor = DataProcessor()
-    result = processor.transform(df1, "sum")
-    print(f"Transformed result shape: {result.shape}")
