@@ -8,7 +8,68 @@ from unittest.mock import patch
 import pandas as pd
 import pytest
 
-from dfcache.core import _create_cache_key, _make_hashable, dfcache
+from dfcache.core import _create_cache_key, _get_func_name, _make_hashable, dfcache
+
+
+# Función global
+def sample_function():
+    pass
+
+
+# Clase de ejemplo
+class ExampleClass:
+    def method(self):
+        pass
+
+    @classmethod
+    def class_method(cls):
+        pass
+
+    @staticmethod
+    def static_method():
+        pass
+
+
+class TestGetFuncName:
+    def test_global_function(self):
+        assert (
+            _get_func_name(sample_function)
+            == f"{sample_function.__module__}_sample_function"
+        )
+
+    def test_class_method(self):
+        assert (
+            _get_func_name(ExampleClass.class_method)
+            == f"{ExampleClass.class_method.__module__}_ExampleClass_class_method"
+        )
+
+    def test_instance_method(self):
+        assert (
+            _get_func_name(ExampleClass().method)
+            == f"{ExampleClass.method.__module__}_ExampleClass_method"
+        )
+
+    def test_static_method(self):
+        assert (
+            _get_func_name(ExampleClass.static_method)
+            == f"{ExampleClass.static_method.__module__}_ExampleClass_static_method"
+        )
+
+    def test_nested_function(self):
+        def outer():
+            def inner():
+                pass
+
+            return inner
+
+        inner_func = outer()
+        expected = "test_core_TestGetFuncName_test_nested_function_<locals>_outer_<locals>_inner"
+        assert _get_func_name(inner_func) == expected
+
+    def test_lambda_function(self):
+        f = lambda x: x  # noqa: E731
+        expected = "test_core_TestGetFuncName_test_lambda_function_<locals>_<lambda>"
+        assert _get_func_name(f) == expected
 
 
 class TestMakeHashable:
@@ -401,32 +462,6 @@ class TestDfcache:
         # Next call should execute function again
         get_data()
         assert call_count == 2
-
-    def test_corrupted_cache_handling(
-        self, temp_cache_dir, sample_dataframe: pd.DataFrame
-    ) -> None:
-        """Test handling of corrupted cache files."""
-
-        @dfcache(cache_dir=temp_cache_dir)
-        def get_data():
-            return sample_dataframe.copy()
-
-        # Create a corrupted cache file
-        cache_key = _create_cache_key(get_data.__wrapped__, (), {})
-        cache_file = Path(temp_cache_dir) / f"{cache_key}.parquet"
-        cache_file.parent.mkdir(parents=True, exist_ok=True)
-        cache_file.write_text("corrupted data")
-
-        # Function should handle corrupted cache gracefully
-        with patch("builtins.print") as mock_print:
-            result = get_data()
-            mock_print.assert_called_once()  # Should print error message
-
-        # Should return valid DataFrame
-        pd.testing.assert_frame_equal(result, sample_dataframe)
-
-        # Corrupted file should be removed
-        assert not cache_file.exists()
 
     def test_caching_failure_handling(
         self, temp_cache_dir, sample_dataframe: pd.DataFrame

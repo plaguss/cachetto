@@ -55,11 +55,10 @@ def dfcache(
             if isinstance(result, pd.DataFrame):
                 try:
                     result.to_parquet(cache_file)
-
                 except Exception as e:  # TODO: What errors can happen here?
                     # If caching fails, continue without caching
                     print(f"Unhandled exception while caching data:\n{e}")
-                    pass
+                    cache_file.unlink(missing_ok=True)
 
             return result
 
