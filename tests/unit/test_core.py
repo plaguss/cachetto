@@ -540,10 +540,12 @@ class TestDfcache:
         def get_data():
             return sample_dataframe.copy()
 
-        from dfcache.core import DEFAULT_CACHE_DIR
+        from dfcache.config import get_config
+
+        cfg = get_config()
 
         # Should use DEFAULT_CACHE_DIR
-        assert get_data._cache_dir == DEFAULT_CACHE_DIR
+        assert get_data._cache_dir == cfg.cache_dir
 
         # Clean up
         get_data.clear_cache()

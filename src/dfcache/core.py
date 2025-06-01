@@ -6,8 +6,6 @@ from typing import Any, Callable
 
 import pandas as pd
 
-DEFAULT_CACHE_DIR = Path.home() / ".cache" / "dfcache"
-
 
 def dfcache(
     func: Callable | None = None,
@@ -27,10 +25,11 @@ def dfcache(
 
     Works with both functions and class methods.
     """
+    from dfcache.config import cfg
 
     def decorator(f: Callable) -> Callable:
         # Create cache directory
-        cache_path = Path(cache_dir) if cache_dir else DEFAULT_CACHE_DIR
+        cache_path = Path(cache_dir) if cache_dir else cfg.cache_dir
         cache_path.mkdir(parents=True, exist_ok=True)
 
         @functools.wraps(f)
