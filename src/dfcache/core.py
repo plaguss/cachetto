@@ -69,7 +69,7 @@ def dfcache(
                 cache_file.unlink(missing_ok=True)
 
         wrapper.clear_cache = clear_cache
-        wrapper._cache_dir = cache_path
+        wrapper.cache_dir = cache_path
 
         return wrapper
 
