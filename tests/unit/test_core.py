@@ -11,12 +11,10 @@ import pytest
 from dfcache.core import _create_cache_key, _get_func_name, _make_hashable, dfcache
 
 
-# Función global
 def sample_function():
     pass
 
 
-# Clase de ejemplo
 class ExampleClass:
     def method(self):
         pass
@@ -345,7 +343,7 @@ class TestDfcache:
             return sample_dataframe.copy()
 
         # Verify cache directory is set correctly
-        assert str(get_data._cache_dir) == temp_cache_dir
+        assert str(get_data.cache_dir) == temp_cache_dir
 
         # Test caching behavior
         result1 = get_data()
@@ -544,8 +542,7 @@ class TestDfcache:
 
         cfg = get_config()
 
-        # Should use DEFAULT_CACHE_DIR
-        assert get_data._cache_dir == cfg.cache_dir
+        assert get_data.cache_dir == cfg.cache_dir
 
         # Clean up
         get_data.clear_cache()
