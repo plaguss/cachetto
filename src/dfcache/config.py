@@ -5,7 +5,7 @@ from pathlib import Path
 
 @dataclass
 class Config:
-    cache_dir = Path.home() / ".cache" / "dfcache"
+    cache_dir: Path = Path.home() / ".cache" / "dfcache"
     caching_enabled: bool = True
 
 
