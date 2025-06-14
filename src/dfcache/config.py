@@ -7,6 +7,7 @@ from pathlib import Path
 class Config:
     cache_dir: Path = Path.home() / ".cache" / "dfcache"
     caching_enabled: bool = True
+    invalid_after: str | None = None
 
 
 cfg = Config()
