@@ -4,8 +4,8 @@ build-backend = "hatchling.build"
 
 [project]
 name = "dfcache"
-version = "0.1.0"
-description = "Easy cacher of functions working with dataframes"
+version = "0.0.1"
+description = "Easily persist functions that work with dataframes."
 readme = "README.md"
 authors = [
     { name = "agustin", email = "agustin.piqueres@gmail.com" }
