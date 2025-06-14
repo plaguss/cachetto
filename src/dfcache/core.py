@@ -4,16 +4,17 @@ import hashlib
 import inspect
 import re
 from pathlib import Path
-from typing import Any, Callable, TypeVar
+from typing import Any, Callable, TypedDict, TypeVar
 
 import pandas as pd
 
 T = TypeVar("T")
 
 DURATION_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)\s*(d|h|m|w|s|)$")
+TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 
-def parse_duration(duration_str: str) -> dt.timedelta:
+def _parse_duration(duration_str: str) -> dt.timedelta:
     """Parse a duration string like '1d', '2h', '30m', '1w' into a timedelta.
 
     Args:
@@ -53,7 +54,7 @@ def parse_duration(duration_str: str) -> dt.timedelta:
         return dt.timedelta(seconds=value)
 
 
-def is_cache_invalid(cache_timestamp: dt.datetime, invalid_after: str | None) -> bool:
+def _is_cache_invalid(cache_timestamp: dt.datetime, invalid_after: str | None) -> bool:
     """Check if cache is invalid based on the invalid_after duration.
 
     Args:
@@ -68,7 +69,7 @@ def is_cache_invalid(cache_timestamp: dt.datetime, invalid_after: str | None) ->
         return False
 
     try:
-        duration = parse_duration(invalid_after)
+        duration = _parse_duration(invalid_after)
         expiry_time = cache_timestamp + duration
         return dt.datetime.now() > expiry_time
     except ValueError as e:
@@ -77,13 +78,38 @@ def is_cache_invalid(cache_timestamp: dt.datetime, invalid_after: str | None) ->
         return True
 
 
-def _read_cached_file(file: Path) -> pd.DataFrame:
+def _read_cached_file(filename: Path) -> pd.DataFrame:
     try:
-        return pd.read_parquet(file)
+        return pd.read_parquet(filename)
     except Exception as e:  # TODO: What errors can happen here?
         # If cache is corrupted, remove it and continue
         print(f"Unhandled exception while loading from cache:\n{e}")
-        file.unlink(missing_ok=True)
+        filename.unlink(missing_ok=True)
+
+
+def _save_to_file(result: pd.DataFrame, filename: Path) -> None:
+    try:
+        result.to_parquet(filename)
+    except Exception as e:  # TODO: What errors can happen here?
+        # If caching fails, continue without caching
+        print(f"Unhandled exception while caching data:\n{e}")
+        filename.unlink(missing_ok=True)
+
+
+def _try_load_from_cache(
+    cache_path: Path, filename_start: str, invalid_after: str | None
+) -> tuple[bool, pd.DataFrame | None]:
+    # Check if there's any file that looks like our cached file:
+    candidates: list[Path] = []
+    for file in cache_path.iterdir():
+        if file.stem.startswith(filename_start):
+            candidates.append(file)
+    if candidates:
+        cache_file = sorted(candidates)[-1]  # Just checking the last created is enough
+        cache_timestamp = _parse_timestamp_from_filename(cache_file)
+        if not _is_cache_invalid(cache_timestamp, invalid_after):
+            return (True, _read_cached_file(cache_file))
+    return (False, None)
 
 
 def dfcache(
@@ -101,8 +127,10 @@ def dfcache(
     - @dfcache(cache_dir="path")
 
     Args:
-        func: The function to decorate (used when called without parentheses)
-        cache_dir: Directory to store cache files (default: ".cache")
+        func: The function to decorate
+        cache_dir: Directory to store cache files
+        caching_enabled (bool): ...
+        invalid_after (str | None): ...
 
     Works with both functions and class methods.
     """
@@ -115,30 +143,24 @@ def dfcache(
 
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            # Create a cache key based on function name, args, and kwargs
             cache_key = _create_cache_key(f, args, kwargs)
-            cache_file = cache_path / f"{_get_func_name(f)}_{cache_key}.parquet"
+            cache_filename_info = _get_cache_filename(
+                cache_path, func_name=_get_func_name(f), cache_key=cache_key
+            )
 
             # TODO: caching_enabled has to be implemented
-            # TODO: This is a placeholder, the cache_timestamp must be obtained from the file itself
-            cache_timestamp = dt.datetime.now()
-            # Try to load from cache
-            if cache_file.exists() and not is_cache_invalid(
-                cache_timestamp, invalid_after
-            ):
-                return _read_cached_file(cache_file)
+            (success, data) = _try_load_from_cache(
+                cache_path, cache_filename_info["filename_start"], invalid_after
+            )
+            if success:
+                return data
 
-            # Execute function and cache result
+            # TODO: Do this first and check for enabled_cache
             result = f(*args, **kwargs)
 
             # Only cache if result is a DataFrame
             if isinstance(result, pd.DataFrame):
-                try:
-                    result.to_parquet(cache_file)
-                except Exception as e:  # TODO: What errors can happen here?
-                    # If caching fails, continue without caching
-                    print(f"Unhandled exception while caching data:\n{e}")
-                    cache_file.unlink(missing_ok=True)
+                _save_to_file(result, cache_filename_info["filename"])
 
             return result
 
@@ -156,10 +178,8 @@ def dfcache(
 
     # Handle both @dfcache and @dfcache(...) usage
     if func is None:
-        # Called with arguments: @dfcache(...)
         return decorator
     else:
-        # Called without arguments: @dfcache
         return decorator(func)
 
 
@@ -190,6 +210,54 @@ def _create_cache_key(func: Callable, args: tuple, kwargs: dict) -> str:
     # Create hash
     key_str = str(key_data)
     return hashlib.md5(key_str.encode()).hexdigest()
+
+
+def _get_timestamp() -> str:
+    return dt.datetime.now().strftime(TIMESTAMP_FORMAT)
+
+
+def _parse_timestamp_from_filename(filename: Path) -> dt.datetime:
+    """Check _get_cache_filename to see the reasoning for this function.
+
+    Args:
+        filename (Path): _description_
+
+    Returns:
+        dt.datetime: _description_
+    """
+    timestamp = "_".join(filename.stem.split("_")[-2:])
+    return dt.datetime.strptime(timestamp, TIMESTAMP_FORMAT)
+
+
+class FilenameInfo(TypedDict):
+    filename: Path
+    timestamp: str
+    filename_start: str
+
+
+def _get_cache_filename(
+    cache_path: Path, func_name: str, cache_key: str, extension: str = "parquet"
+) -> FilenameInfo:
+    """Generates the filename info for the cached result.
+
+    It contains the full filename to the cached file, the timestamp and the start
+    of the filename to find it in case there's more than one with different timestamps.
+
+    Args:
+        cache_path (Path): Folder where the file will be saved.
+        func_name (str): Name of the function.
+        cache_key (str): Cached key from the function and args/kwargs.
+        extension (str, optional): File extension. Defaults to "parquet".
+
+    Returns:
+        filename (str): Name of the file.
+    """
+    timestamp = _get_timestamp()
+    return {
+        "filename": cache_path / f"{func_name}_{cache_key}_{timestamp}.{extension}",
+        "timestamp": timestamp,
+        "filename_start": f"{func_name}_{cache_key}",
+    }
 
 
 def _make_hashable(obj: Any) -> Any:
