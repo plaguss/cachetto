@@ -61,12 +61,12 @@ class TestGetFuncName:
             return inner
 
         inner_func = outer()
-        expected = "test_core_TestGetFuncName_test_nested_function_<locals>_outer_<locals>_inner"
+        expected = "test_core_TestGetFuncName_test_nested_function__locals__outer__locals__inner"
         assert _get_func_name(inner_func) == expected
 
     def test_lambda_function(self):
         f = lambda x: x  # noqa: E731
-        expected = "test_core_TestGetFuncName_test_lambda_function_<locals>_<lambda>"
+        expected = "test_core_TestGetFuncName_test_lambda_function__locals___lambda_"
         assert _get_func_name(f) == expected
 
 
