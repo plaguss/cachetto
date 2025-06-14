@@ -1,14 +1,12 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pandas", "lxml"]
+# dependencies = ["pandas", "lxml", "dfcache"]
 # ///
 
 """Run with:
 
 uv run examples/countries.py
 """
-
-# TODO: Add dfcache to the example
 
 from time import time
 
