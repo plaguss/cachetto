@@ -23,20 +23,49 @@ def dfcache(
     caching_enabled: bool = True,
     invalid_after: str | None = None,
 ) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    """
-    A decorator for caching pandas DataFrame results.
+    """Decorator for caching pandas DataFrame return values to disk.
 
-    Can be used as:
-    - @dfcache (with default settings)
-    - @dfcache(cache_dir="path")
+    This decorator caches the output of a function that returns a pandas DataFrame,
+    storing it in a specified cache directory as a Parquet file. If the cache exists
+    and is still valid (based on `invalid_after`), it will be loaded instead of
+    recomputing the function.
+
+    Examples:
+        ```py
+        Can be used with or without parentheses:
+        @dfcache
+        def my_function(...): ...
+
+        @dfcache(cache_dir="path/to/cache", invalid_after="7d")
+        def my_function(...): ...
+        ```
 
     Args:
-        func: The function to decorate
-        cache_dir: Directory to store cache files
-        caching_enabled (bool): ...
-        invalid_after (str | None): ...
+        func (Callable | None): The function to decorate.
+            If None, the decorator is being used with parameters.
+        cache_dir (str | None): Directory where cache files will be stored.
+            If None, the default from config is used.
+        caching_enabled (bool): Whether caching is enabled.
+            If False, the function will always execute without caching.
+        invalid_after (str | None): Duration string (e.g. '1d',
+            '6h') specifying how long the cache remains valid.
+            If None, the cache is considered always valid.
 
-    Works with both functions and class methods.
+    Returns:
+        Callable: A decorated function that caches its pandas DataFrame output.
+
+    Raises:
+        ValueError: If `invalid_after` is not a valid duration format.
+
+    Attributes:
+        clear_cache (Callable[[], None]): Method to clear all cached files for
+            this function.
+        cache_dir (Path): Path object representing the cache directory in use.
+
+    Note:
+        - Only functions that return a `pandas.DataFrame` will be cached.
+        - Cached files are stored in `.parquet` format.
+        - Caching works for both functions and class instance methods.
     """
     from dfcache.config import get_config
 
