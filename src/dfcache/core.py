@@ -8,10 +8,102 @@ from typing import Any, Callable, TypedDict, TypeVar
 
 import pandas as pd
 
+from .config import Config
+
 T = TypeVar("T")
 
 DURATION_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)\s*(d|h|m|w|s|)$")
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
+
+
+def dfcache(
+    func: Callable | None = None,
+    *,
+    cache_dir: str | None = None,
+    caching_enabled: bool = True,
+    invalid_after: str | None = None,
+) -> Callable[[Callable[..., T]], Callable[..., T]]:
+    """
+    A decorator for caching pandas DataFrame results.
+
+    Can be used as:
+    - @dfcache (with default settings)
+    - @dfcache(cache_dir="path")
+
+    Args:
+        func: The function to decorate
+        cache_dir: Directory to store cache files
+        caching_enabled (bool): ...
+        invalid_after (str | None): ...
+
+    Works with both functions and class methods.
+    """
+    from dfcache.config import get_config
+
+    func_args = _get_defaults_from_config(
+        get_config(),
+        cache_dir=cache_dir,
+        caching_enabled=caching_enabled,
+        invalid_after=invalid_after,
+    )
+
+    def decorator(f: Callable) -> Callable:
+        cache_path = Path(func_args["cache_dir"])
+        cache_path.mkdir(parents=True, exist_ok=True)
+
+        @functools.wraps(f)
+        def wrapper(*args, **kwargs):
+            result = f(*args, **kwargs)
+            if not func_args["caching_enabled"]:
+                return result
+
+            cache_key = _create_cache_key(f, args, kwargs)
+            cache_filename_info = _get_cache_filename(
+                cache_path, func_name=_get_func_name(f), cache_key=cache_key
+            )
+
+            (success, data) = _try_load_from_cache(
+                cache_path,
+                cache_filename_info["filename_start"],
+                func_args["invalid_after"],
+            )
+            if success:
+                return data
+
+            # Only cache if result is a DataFrame
+            if isinstance(result, pd.DataFrame):
+                _save_to_file(result, cache_filename_info["filename"])
+
+            return result
+
+        # Add cache management methods
+        def clear_cache():
+            """Clear all cached results for this function."""
+            func_prefix = _get_func_name(f)
+            for cache_file in cache_path.glob(f"*{func_prefix}*.parquet"):
+                cache_file.unlink(missing_ok=True)
+
+        wrapper.clear_cache = clear_cache
+        wrapper.cache_dir = cache_path
+
+        return wrapper
+
+    # Handle both @dfcache and @dfcache(...) usage
+    if func is None:
+        return decorator
+    else:
+        return decorator(func)
+
+
+def _get_defaults_from_config(config: Config, **kwargs) -> dict:
+    """Replaces uninformed values with the corresponding one from the config."""
+    result = {}
+    for key, value in kwargs.items():
+        if value is None:
+            result[key] = getattr(config, key)
+        else:
+            result[key] = value
+    return result
 
 
 def _parse_duration(duration_str: str) -> dt.timedelta:
@@ -52,6 +144,8 @@ def _parse_duration(duration_str: str) -> dt.timedelta:
         return dt.timedelta(weeks=value)
     elif unit == "s":
         return dt.timedelta(seconds=value)
+    else:
+        raise ValueError("The unit has to be informed.")
 
 
 def _is_cache_invalid(cache_timestamp: dt.datetime, invalid_after: str | None) -> bool:
@@ -110,77 +204,6 @@ def _try_load_from_cache(
         if not _is_cache_invalid(cache_timestamp, invalid_after):
             return (True, _read_cached_file(cache_file))
     return (False, None)
-
-
-def dfcache(
-    func: Callable | None = None,
-    *,
-    cache_dir: str | None = None,
-    caching_enabled: bool = True,
-    invalid_after: str | None = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
-    """
-    A decorator for caching pandas DataFrame results.
-
-    Can be used as:
-    - @dfcache (with default settings)
-    - @dfcache(cache_dir="path")
-
-    Args:
-        func: The function to decorate
-        cache_dir: Directory to store cache files
-        caching_enabled (bool): ...
-        invalid_after (str | None): ...
-
-    Works with both functions and class methods.
-    """
-    from dfcache.config import cfg
-
-    def decorator(f: Callable) -> Callable:
-        # Create cache directory
-        cache_path = Path(cache_dir) if cache_dir else cfg.cache_dir
-        cache_path.mkdir(parents=True, exist_ok=True)
-
-        @functools.wraps(f)
-        def wrapper(*args, **kwargs):
-            cache_key = _create_cache_key(f, args, kwargs)
-            cache_filename_info = _get_cache_filename(
-                cache_path, func_name=_get_func_name(f), cache_key=cache_key
-            )
-
-            # TODO: caching_enabled has to be implemented
-            (success, data) = _try_load_from_cache(
-                cache_path, cache_filename_info["filename_start"], invalid_after
-            )
-            if success:
-                return data
-
-            # TODO: Do this first and check for enabled_cache
-            result = f(*args, **kwargs)
-
-            # Only cache if result is a DataFrame
-            if isinstance(result, pd.DataFrame):
-                _save_to_file(result, cache_filename_info["filename"])
-
-            return result
-
-        # Add cache management methods
-        def clear_cache():
-            """Clear all cached results for this function."""
-            func_prefix = _get_func_name(f)
-            for cache_file in cache_path.glob(f"*{func_prefix}*.parquet"):
-                cache_file.unlink(missing_ok=True)
-
-        wrapper.clear_cache = clear_cache
-        wrapper.cache_dir = cache_path
-
-        return wrapper
-
-    # Handle both @dfcache and @dfcache(...) usage
-    if func is None:
-        return decorator
-    else:
-        return decorator(func)
 
 
 def _get_func_name(func: Any) -> str:
