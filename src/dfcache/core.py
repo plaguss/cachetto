@@ -82,9 +82,8 @@ def dfcache(
 
         @functools.wraps(f)
         def wrapper(*args, **kwargs):
-            result = f(*args, **kwargs)
             if not func_args["caching_enabled"]:
-                return result
+                return f(*args, **kwargs)
 
             cache_key = _create_cache_key(f, args, kwargs)
             cache_filename_info = _get_cache_filename(
@@ -96,8 +95,11 @@ def dfcache(
                 cache_filename_info["filename_start"],
                 func_args["invalid_after"],
             )
+
             if success:
                 return data
+
+            result = f(*args, **kwargs)
 
             # Only cache if result is a DataFrame
             if isinstance(result, pd.DataFrame):
