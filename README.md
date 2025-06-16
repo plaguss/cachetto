@@ -1,19 +1,131 @@
 # dfcache
-Easy cacher of functions working with dataframes
+Disk-based caching for functions returning pandas DataFrames, plain and simple.
+
+<!-- [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dfcache)](https://pypi.org/project/dfcache)
+[![PyPI](https://img.shields.io/pypi/v/dfcache)](https://pypi.org/project/dfcache)
+[![Tests](https://github.com/plaguss/dfcache/actions/workflows/ci.yml/badge.svg)](https://github.com/plaguss/dfcache/actions/workflows/ci.yml)
+ -->
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
-## Installation
+> [!WARNING]
+>
+> dfcache is experimental, the API is subject to changes.
 
-TODO
+## Getting Started
 
-## Examples
+This is a simple library, but it can be handy for those who had to deal with codebases that have functions that take it's time to generate or process tabular data in the form of dataframes, either due to slow computations or queries. If that may be your case, take a look at the usage to see if you may find some help here.
 
-TODO
+Features:
 
-## TODO
+- Seamless caching for functions or methods returning a pandas.DataFrame
 
-- [ ] Create global args to work with the cache_dir
-- [ ] Test different python versions
-- [ ] Add benchmarks with different datframes sizes and when can be useful
-to cache
-- [ ] Add examples
+- Customizable cache directory
+
+- Cache expiration with invalid_after (e.g., "1d", "6h")
+
+- Toggle caching on or off
+
+- Uses fast, efficient .parquet format
+
+### Installation
+
+`dfcache` is available on PyPI, and can be installed with:
+
+```shell
+# Using uv
+uv add dfcache
+# Using pip
+pip install dfcache
+```
+
+The only required dependency is `pandas>=1.5.3` and Python 3.10 or higher.
+
+### Usage
+
+The API consists basically of a single decorator `dfcache`.
+
+#### Minimal usage (No config)
+
+Just decorate your function. By default, it uses an internal cache directory and never invalidates:
+
+```py
+from dfcache import dfcache
+import pandas as pd
+
+@dfcache
+def get_data():
+    print("Running expensive computation...")
+    return pd.DataFrame({"value": range(10)})
+
+df = get_data()  # Will run and cache
+df = get_data()  # Will load from cache
+```
+
+#### Custom cache directry
+
+Specify where cached files should be stored:
+
+```py
+@dfcache(cache_dir="cache_files")
+def load_big_dataframe():
+    return pd.DataFrame({"big": range(100000)})
+```
+
+#### Add cache expiration
+
+Expire the cache after a certain duration (e.g., 1 day, 3 hours):
+
+```py
+@dfcache(cache_dir="cache_files", invalid_after="1d")
+def get_fresh_data():
+    return pd.DataFrame({"timestamp": [pd.Timestamp.now()]})
+```
+
+*If the cached file is older than 1 day, the function will re-run and overwrite the cache.*
+
+#### Temporarily disable caching
+
+Use the `caching_enabled` flag to bypass cache logic (e.g., for debugging, when running on a different environment):
+
+```py
+@dfcache(caching_enabled=False)
+def debug_function():
+    print("No caching here")
+    return pd.DataFrame({"x": range(3)})
+```
+
+#### Clear cached files manually
+
+You can programmatically clear the cache for a decorated function:
+
+```py
+@dfcache
+def some_data():
+    return pd.DataFrame({"numbers": [1, 2, 3]})
+
+some_data.clear_cache()  # Deletes all cached files for this function
+```
+
+#### Use with class methods
+
+Works equally with class methods:
+
+```py
+class MyModel:
+    @dfcache(cache_dir="model_cache")
+    def load_data(self):
+        return pd.DataFrame({"model": ["A", "B", "C"]})
+```
+
+## Development
+
+Work in progress
+
+## License
+
+This repository is licensed under the [MIT License](https://github.com/plaguss/dfcache/blob/main/LICENSE).
+
+## Credits
+
+It's heavily inspired by [cachier](https://github.com/python-cachier/cachier), but with a more narrow focus on functions with pandas dataframes, and just disk-based caching with data saved to parquet instead of pickle.
