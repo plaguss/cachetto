@@ -3,20 +3,23 @@ import pandas as pd
 from dfcache import dfcache
 
 
-@dfcache()
-def load_data(file_id: int, filter_col: str = "default") -> pd.DataFrame:
+@dfcache
+def load_data(rows: int = 100) -> pd.DataFrame:
     """Simulate loading data."""
-    print(f"Loading data for file_id={file_id}, filter_col={filter_col}")
+    print(f"Loading '{rows}' rows of data...")
+    import time
+
+    time.sleep(1)
     return pd.DataFrame(
         {
-            "id": range(file_id * 10),
-            "value": range(file_id * 10, file_id * 20),
-            "filter": [filter_col] * (file_id * 10),
+            "id": range(rows * 10),
+            "value": range(rows * 10, rows * 20),
+            "filter": [rows] * (rows * 10),
         }
     )
 
 
-@dfcache(cache_dir="custom_cache")
+@dfcache
 def process_data(df: pd.DataFrame, multiplier: int = 1) -> pd.DataFrame:
     """Simulate data processing."""
     print(f"Processing data with multiplier={multiplier}")
@@ -39,12 +42,15 @@ class DataProcessor:
 print("Testing dfcache decorator:")
 
 # First call - will execute and cache
-df1 = load_data(5, "test")
+df1 = load_data(100)
 print(f"Result shape: {df1.shape}")
 
 # Second call - will load from cache
-df2 = load_data(5, "test")
+df2 = load_data(100)
 print(f"Result shape: {df2.shape}")
+
+df3 = load_data(5)
+print(f"Result shape: {df3.shape}")
 
 # Test with class method
 processor = DataProcessor()
