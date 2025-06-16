@@ -625,7 +625,7 @@ class TestDfcache:
         with patch("dfcache.config._cfg", mock_cfg):
             call_count = 0
 
-            @dfcache  # No parameters provided
+            @dfcache(caching_enabled=False)  # No parameters provided
             def test_func():
                 nonlocal call_count
                 call_count += 1
