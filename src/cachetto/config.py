@@ -5,7 +5,7 @@ from pathlib import Path
 
 @dataclass
 class Config:
-    cache_dir: Path = Path.home() / ".cache" / "dfcache"
+    cache_dir: Path = Path.home() / ".cache" / "cachetto"
     caching_enabled: bool = True
     invalid_after: str | None = None
 
@@ -15,31 +15,31 @@ _cfg = Config()
 
 def set_config(**params: Mapping) -> None:
     """Configures global configuration."""
-    import dfcache.config
+    import cachetto.config
 
-    valid_params = {k: v for k, v in params.items() if hasattr(dfcache.config._cfg, k)}
-    dfcache.config._cfg = replace(
-        dfcache.config._cfg,
+    valid_params = {k: v for k, v in params.items() if hasattr(cachetto.config._cfg, k)}
+    cachetto.config._cfg = replace(
+        cachetto.config._cfg,
         **valid_params,
     )
 
 
 def get_config() -> Config:
     """Get the global config."""
-    import dfcache.config
+    import cachetto.config
 
-    return dfcache.config._cfg
+    return cachetto.config._cfg
 
 
 def enable_caching():
     """Enable caching globally."""
-    import dfcache.config
+    import cachetto.config
 
-    dfcache.config._cfg.caching_enabled = True
+    cachetto.config._cfg.caching_enabled = True
 
 
 def disable_caching():
     """Disable caching globally."""
-    import dfcache.config
+    import cachetto.config
 
-    dfcache.config._cfg.caching_enabled = False
+    cachetto.config._cfg.caching_enabled = False

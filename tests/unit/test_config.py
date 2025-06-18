@@ -3,7 +3,7 @@ from pathlib import Path
 
 import pytest
 
-from dfcache import config
+from cachetto import config
 
 
 @pytest.fixture(autouse=True)

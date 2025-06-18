@@ -1,6 +1,6 @@
 # /// script
 # requires-python = ">=3.12"
-# dependencies = ["pandas", "lxml", "dfcache"]
+# dependencies = ["pandas", "lxml", "cachetto"]
 # ///
 
 """Run with:
@@ -12,10 +12,10 @@ from time import time
 
 import pandas as pd
 
-from dfcache import dfcache
+from cachetto import cached
 
 
-@dfcache
+@cached
 def get_countries() -> pd.DataFrame:
     dfs = pd.read_html(
         r"https://en.wikipedia.org/wiki/List_of_countries_by_GDP_(nominal)"

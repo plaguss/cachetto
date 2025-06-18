@@ -1,16 +1,16 @@
-# dfcache
+# cachetto
 Disk-based caching for functions returning pandas DataFrames, plain and simple.
 
-<!-- [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/dfcache)](https://pypi.org/project/dfcache)
-[![PyPI](https://img.shields.io/pypi/v/dfcache)](https://pypi.org/project/dfcache)
-[![Tests](https://github.com/plaguss/dfcache/actions/workflows/ci.yml/badge.svg)](https://github.com/plaguss/dfcache/actions/workflows/ci.yml)
+<!-- [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cachetto)](https://pypi.org/project/cachetto)
+[![PyPI](https://img.shields.io/pypi/v/cachetto)](https://pypi.org/project/cachetto)
+[![Tests](https://github.com/plaguss/cachetto/actions/workflows/ci.yml/badge.svg)](https://github.com/plaguss/cachetto/actions/workflows/ci.yml)
  -->
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
 > [!WARNING]
 >
-> dfcache is experimental, the API is subject to changes.
+> cachetto is experimental, the API is subject to changes.
 
 ## Getting Started
 
@@ -30,30 +30,30 @@ Features:
 
 ### Installation
 
-`dfcache` is available on PyPI, and can be installed with:
+`cachetto` is available on PyPI, and can be installed with:
 
 ```shell
 # Using uv
-uv add dfcache
+uv add cachetto
 # Using pip
-pip install dfcache
+pip install cachetto
 ```
 
 The only required dependency is `pandas>=1.5.3` and Python 3.10 or higher.
 
 ### Usage
 
-The API consists basically of a single decorator `dfcache`.
+The API consists basically of a single decorator `cached`.
 
 #### Minimal usage (No config)
 
 Just decorate your function. By default, it uses an internal cache directory and never invalidates:
 
 ```py
-from dfcache import dfcache
+from cachetto import cached
 import pandas as pd
 
-@dfcache
+@cached
 def get_data():
     print("Running expensive computation...")
     return pd.DataFrame({"value": range(10)})
@@ -67,7 +67,7 @@ df = get_data()  # Will load from cache
 Specify where cached files should be stored:
 
 ```py
-@dfcache(cache_dir="cache_files")
+@cached(cache_dir="cache_files")
 def load_big_dataframe():
     return pd.DataFrame({"big": range(100000)})
 ```
@@ -77,7 +77,7 @@ def load_big_dataframe():
 Expire the cache after a certain duration (e.g., 1 day, 3 hours):
 
 ```py
-@dfcache(cache_dir="cache_files", invalid_after="1d")
+@cached(cache_dir="cache_files", invalid_after="1d")
 def get_fresh_data():
     return pd.DataFrame({"timestamp": [pd.Timestamp.now()]})
 ```
@@ -89,7 +89,7 @@ def get_fresh_data():
 Use the `caching_enabled` flag to bypass cache logic (e.g., for debugging, when running on a different environment):
 
 ```py
-@dfcache(caching_enabled=False)
+@cached(caching_enabled=False)
 def debug_function():
     print("No caching here")
     return pd.DataFrame({"x": range(3)})
@@ -100,7 +100,7 @@ def debug_function():
 You can programmatically clear the cache for a decorated function:
 
 ```py
-@dfcache
+@cached
 def some_data():
     return pd.DataFrame({"numbers": [1, 2, 3]})
 
@@ -113,7 +113,7 @@ Works equally with class methods:
 
 ```py
 class MyModel:
-    @dfcache(cache_dir="model_cache")
+    @cached(cache_dir="model_cache")
     def load_data(self):
         return pd.DataFrame({"model": ["A", "B", "C"]})
 ```
@@ -124,8 +124,8 @@ Work in progress
 
 ## License
 
-This repository is licensed under the [MIT License](https://github.com/plaguss/dfcache/blob/main/LICENSE).
+This repository is licensed under the [MIT License](https://github.com/plaguss/cachetto/blob/main/LICENSE).
 
 ## Credits
 
-It's heavily inspired by [cachier](https://github.com/python-cachier/cachier), but with a more narrow focus on functions with pandas dataframes, and just disk-based caching with data saved to parquet instead of pickle.
+It's heavily inspired by [cachier](https://github.com/python-cachier/cachier), but with a more narrow focus on functions with pandas dataframes, and just disk-based caching.

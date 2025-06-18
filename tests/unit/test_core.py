@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 import pytest
 
-from dfcache.core import (
+from cachetto.core import (
     _create_cache_key,
     _get_func_name,
     _is_cache_invalid,
@@ -17,7 +17,7 @@ from dfcache.core import (
     _parse_duration,
     _read_cached_file,
     _save_to_file,
-    dfcache,
+    cached,
 )
 
 
@@ -186,7 +186,7 @@ class TestCreateCacheKey:
             return a + b
 
         # Simulate _make_hashable for lists and dicts
-        monkeypatch.setattr("dfcache.core._make_hashable", lambda x: str(x))
+        monkeypatch.setattr("cachetto.core._make_hashable", lambda x: str(x))
 
         key = _create_cache_key(func, ([1, 2, 3], {"foo": "bar"}), {})
 
@@ -332,12 +332,12 @@ class TestIsCacheInvalid:
 
     def test_is_cache_invalid_not_expired(self, monkeypatch) -> None:
         now = dt.datetime.now()
-        monkeypatch.setattr("dfcache.core.dt", dt)
+        monkeypatch.setattr("cachetto.core.dt", dt)
         assert _is_cache_invalid(now, "1d") is False
 
     def test_is_cache_invalid_invalid_duration(self, monkeypatch) -> None:
         now = dt.datetime.now()
-        monkeypatch.setattr("dfcache.core.dt", dt)
+        monkeypatch.setattr("cachetto.core.dt", dt)
         assert _is_cache_invalid(now, "badformat") is True
 
 
@@ -384,8 +384,8 @@ class TestSaveToFile:
             assert not file_path.exists()
 
 
-class TestDfcache:
-    """Test suite for the dfcache decorator."""
+class Testcached:
+    """Test suite for the cached decorator."""
 
     @pytest.fixture
     def temp_cache_dir(self):
@@ -403,7 +403,7 @@ class TestDfcache:
 
     @pytest.fixture
     def mock_config(self, temp_cache_dir):
-        """Mock the dfcache config."""
+        """Mock the cached config."""
         mock_cfg = MagicMock()
         mock_cfg.cache_dir = Path(temp_cache_dir) / "default_cache"
         mock_cfg.caching_enabled = True
@@ -412,10 +412,10 @@ class TestDfcache:
     def test_decorator_with_cache_dir(
         self, temp_cache_dir, sample_dataframe: pd.DataFrame
     ) -> None:
-        """Test @dfcache(cache_dir="path") usage."""
+        """Test @cached(cache_dir="path") usage."""
         call_count = 0
 
-        @dfcache(cache_dir=temp_cache_dir)
+        @cached(cache_dir=temp_cache_dir)
         def test_func():
             nonlocal call_count
             call_count += 1
@@ -439,7 +439,7 @@ class TestDfcache:
         """Test decorator with caching disabled."""
         call_count = 0
 
-        @dfcache(cache_dir=temp_cache_dir, caching_enabled=False)
+        @cached(cache_dir=temp_cache_dir, caching_enabled=False)
         def test_func():
             nonlocal call_count
             call_count += 1
@@ -459,7 +459,7 @@ class TestDfcache:
         """Test caching with function arguments."""
         call_count = 0
 
-        @dfcache(cache_dir=temp_cache_dir)
+        @cached(cache_dir=temp_cache_dir)
         def create_df(rows, cols):
             nonlocal call_count
             call_count += 1
@@ -484,7 +484,7 @@ class TestDfcache:
         """Test caching with keyword arguments."""
         call_count = 0
 
-        @dfcache(cache_dir=temp_cache_dir)
+        @cached(cache_dir=temp_cache_dir)
         def create_df(rows=3, prefix="col"):
             nonlocal call_count
             call_count += 1
@@ -506,7 +506,7 @@ class TestDfcache:
         """Test function that doesn't return a DataFrame."""
         call_count = 0
 
-        @dfcache(cache_dir=temp_cache_dir)
+        @cached(cache_dir=temp_cache_dir)
         def return_string():
             nonlocal call_count
             call_count += 1
@@ -524,7 +524,7 @@ class TestDfcache:
     def test_clear_cache_method(self, temp_cache_dir, sample_dataframe):
         """Test the clear_cache method added to decorated functions."""
 
-        @dfcache(cache_dir=temp_cache_dir)
+        @cached(cache_dir=temp_cache_dir)
         def test_func():
             return sample_dataframe
 
@@ -547,7 +547,7 @@ class TestDfcache:
         call_count = 0
 
         class TestClass:
-            @dfcache(cache_dir=temp_cache_dir)
+            @cached(cache_dir=temp_cache_dir)
             def get_data(self, multiplier=1):
                 nonlocal call_count
                 call_count += 1
@@ -579,7 +579,7 @@ class TestDfcache:
             # Directory doesn't exist initially
             assert not cache_path.exists()
 
-            @dfcache(cache_dir=str(cache_path))
+            @cached(cache_dir=str(cache_path))
             def test_func():
                 return sample_dataframe
 
@@ -594,7 +594,7 @@ class TestDfcache:
     def test_invalid_after_parameter(self, temp_cache_dir, sample_dataframe):
         """Test the invalid_after parameter functionality."""
 
-        @dfcache(cache_dir=temp_cache_dir, invalid_after="1h")
+        @cached(cache_dir=temp_cache_dir, invalid_after="1h")
         def test_func():
             return sample_dataframe
 
@@ -606,7 +606,7 @@ class TestDfcache:
     def test_wraps_preservation(self, temp_cache_dir, sample_dataframe):
         """Test that function metadata is preserved using functools.wraps."""
 
-        @dfcache(cache_dir=temp_cache_dir)
+        @cached(cache_dir=temp_cache_dir)
         def documented_function():
             """This function has documentation."""
             return sample_dataframe
@@ -622,10 +622,10 @@ class TestDfcache:
         mock_cfg.caching_enabled = False
         mock_cfg.invalid_after = None
 
-        with patch("dfcache.config._cfg", mock_cfg):
+        with patch("cachetto.config._cfg", mock_cfg):
             call_count = 0
 
-            @dfcache(caching_enabled=False)  # No parameters provided
+            @cached(caching_enabled=False)  # No parameters provided
             def test_func():
                 nonlocal call_count
                 call_count += 1

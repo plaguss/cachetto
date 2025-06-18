@@ -1,4 +1,4 @@
-sources = src/dfcache tests
+sources = src/cachetto tests
 
 .PHONY: .uv
 .uv: ## Check that uv is installed
@@ -46,4 +46,10 @@ unit-tests:
 
 .PHONY: cov-tests
 cov-tests:
-	uv run pytest tests/unit --cov=dfcache --cov-report=html
+	uv run pytest tests/unit --cov=cachetto --cov-report=html
+
+.PHONY: release
+release:
+	uv build
+	uv publish --token "${PYPI_TOKEN}"
+	uv run --with cachetto --no-project -- python -c "from cachetto import cached"

@@ -1,9 +1,9 @@
 import pandas as pd
 
-from dfcache import dfcache
+from cachetto import cached
 
 
-@dfcache
+@cached
 def load_data(rows: int = 100) -> pd.DataFrame:
     """Simulate loading data."""
     print(f"Loading '{rows}' rows of data...")
@@ -19,7 +19,7 @@ def load_data(rows: int = 100) -> pd.DataFrame:
     )
 
 
-@dfcache
+@cached
 def process_data(df: pd.DataFrame, multiplier: int = 1) -> pd.DataFrame:
     """Simulate data processing."""
     print(f"Processing data with multiplier={multiplier}")
@@ -29,7 +29,7 @@ def process_data(df: pd.DataFrame, multiplier: int = 1) -> pd.DataFrame:
 
 
 class DataProcessor:
-    @dfcache
+    @cached
     def transform(self, data: pd.DataFrame, operation: str = "sum") -> pd.DataFrame:
         """Transform data based on operation."""
         print(f"Transforming data with operation={operation}")
@@ -39,7 +39,7 @@ class DataProcessor:
 
 
 # Test usage
-print("Testing dfcache decorator:")
+print("Testing cached decorator:")
 
 # First call - will execute and cache
 df1 = load_data(100)

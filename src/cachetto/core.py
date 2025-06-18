@@ -16,7 +16,7 @@ DURATION_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)\s*(d|h|m|w|s|)$")
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 
-def dfcache(
+def cached(
     func: Callable | None = None,
     *,
     cache_dir: str | None = None,
@@ -33,10 +33,10 @@ def dfcache(
     Examples:
         ```py
         Can be used with or without parentheses:
-        @dfcache
+        @cached
         def my_function(...): ...
 
-        @dfcache(cache_dir="path/to/cache", invalid_after="7d")
+        @cached(cache_dir="path/to/cache", invalid_after="7d")
         def my_function(...): ...
         ```
 
@@ -67,7 +67,7 @@ def dfcache(
         - Cached files are stored in `.parquet` format.
         - Caching works for both functions and class instance methods.
     """
-    from dfcache.config import get_config
+    from cachetto.config import get_config
 
     func_args = _get_defaults_from_config(
         get_config(),
@@ -119,7 +119,7 @@ def dfcache(
 
         return wrapper
 
-    # Handle both @dfcache and @dfcache(...) usage
+    # Handle both @cached and @cached(...) usage
     if func is None:
         return decorator
     else:
