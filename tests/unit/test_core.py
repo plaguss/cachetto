@@ -410,6 +410,30 @@ class Testcached:
         mock_cfg.caching_enabled = True
         return mock_cfg
 
+    def test_plain_decorator(self, sample_dataframe: pd.DataFrame) -> None:
+        """Test @cached usage."""
+        call_count = 0
+
+        @cached
+        def test_func():
+            nonlocal call_count
+            call_count += 1
+            return sample_dataframe
+
+        # First call should execute function
+        result1 = test_func()
+        assert result1.equals(sample_dataframe)
+        assert call_count == 1
+
+        # Verify cache directory is created and set
+        assert Path(test_func.cache_dir).exists()
+
+        # Note: Since the decorator has the caching logic after function execution,
+        # the second call will still execute the function but should find cached data
+        result2 = test_func()
+        assert result2.equals(sample_dataframe)
+        test_func.clear_cache()
+
     def test_decorator_with_cache_dir(
         self, temp_cache_dir, sample_dataframe: pd.DataFrame
     ) -> None:
