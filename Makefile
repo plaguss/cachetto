@@ -40,6 +40,10 @@ lint:
 	uv run ruff check $(sources)
 	uv run ruff format --check $(sources)
 
+.PHONY: typecheck-mypy
+typecheck-mypy:
+	uv run mypy $(sources)
+
 .PHONY: unit-tests
 unit-tests:
 	uv run pytest tests/unit
