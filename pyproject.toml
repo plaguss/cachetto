@@ -29,6 +29,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "mypy>=1.16.1",
+    "pandas-stubs>=2.2.3.250527",
     "pre-commit>=4.2.0",
     "pytest>=8.3.5",
     "pytest-benchmark[histogram]>=5.1.0",

@@ -1,4 +1,4 @@
-from collections.abc import Mapping
+from typing import Any
 from dataclasses import dataclass, replace
 from pathlib import Path
 
@@ -13,7 +13,7 @@ class Config:
 _cfg = Config()
 
 
-def set_config(**params: Mapping) -> None:
+def set_config(**params: Any) -> None:
     """Configures global configuration."""
     import cachetto.config
 

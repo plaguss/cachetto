@@ -347,6 +347,7 @@ class TestReadCachedFile:
         file_path = tmp_path / "test.parquet"
         df.to_parquet(file_path)
         result = _read_cached_file(file_path)
+        assert result is not None
         pd.testing.assert_frame_equal(result, df)
 
     def test_read_cached_file_failure(self, tmp_path) -> None:

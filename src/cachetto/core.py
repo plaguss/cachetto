@@ -4,25 +4,50 @@ import hashlib
 import inspect
 import re
 from pathlib import Path
-from typing import Any, Callable, TypedDict, TypeVar
+from typing import Any, Callable, TypedDict, TypeVar, Protocol, overload
 
 import pandas as pd
 
 from .config import Config
 
-T = TypeVar("T")
+F = TypeVar("F", bound=Callable[..., Any])
+
 
 DURATION_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)\s*(d|h|m|w|s|)$")
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 
+class CachedFunction(Protocol):
+    """Protocol for functions decorated with @cached"""
+    def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
+    def clear_cache(self) -> None: ...
+    @property
+    def cache_dir(self) -> str | None: ...
+
+
+@overload
 def cached(
-    func: Callable | None = None,
+    func: F,
+) -> CachedFunction: ...
+
+
+@overload
+def cached(
+    func: None = None,
     *,
     cache_dir: str | None = None,
     caching_enabled: bool = True,
     invalid_after: str | None = None,
-) -> Callable[[Callable[..., T]], Callable[..., T]]:
+) -> Callable[[F], CachedFunction]: ...
+
+
+def cached(
+    func: F | None = None,
+    *,
+    cache_dir: str | None = None,
+    caching_enabled: bool = True,
+    invalid_after: str | None = None,
+) -> CachedFunction | Callable[[F], CachedFunction]:
     """Decorator for caching pandas DataFrame return values to disk.
 
     This decorator caches the output of a function that returns a pandas DataFrame,
@@ -76,12 +101,12 @@ def cached(
         invalid_after=invalid_after,
     )
 
-    def decorator(f: Callable) -> Callable:
+    def decorator(f: F) -> CachedFunction:
         cache_path = Path(func_args["cache_dir"])
         cache_path.mkdir(parents=True, exist_ok=True)
 
         @functools.wraps(f)
-        def wrapper(*args, **kwargs):
+        def wrapper(*args: Any, **kwargs: Any) -> Any:
             if not func_args["caching_enabled"]:
                 return f(*args, **kwargs)
 
@@ -114,10 +139,10 @@ def cached(
             for cache_file in cache_path.glob(f"*{func_prefix}*.parquet"):
                 cache_file.unlink(missing_ok=True)
 
-        wrapper.clear_cache = clear_cache
-        wrapper.cache_dir = cache_path
+        wrapper.clear_cache = clear_cache  # type: ignore
+        wrapper.cache_dir = cache_path  # type: ignore
 
-        return wrapper
+        return wrapper  # type: ignore
 
     # Handle both @cached and @cached(...) usage
     if func is None:
@@ -203,13 +228,14 @@ def _is_cache_invalid(cache_timestamp: dt.datetime, invalid_after: str | None) -
         return True
 
 
-def _read_cached_file(filename: Path) -> pd.DataFrame:
+def _read_cached_file(filename: Path) -> pd.DataFrame | None:
     try:
         return pd.read_parquet(filename)
     except Exception as e:  # TODO: What errors can happen here?
         # If cache is corrupted, remove it and continue
         print(f"Unhandled exception while loading from cache:\n{e}")
         filename.unlink(missing_ok=True)
+        return None
 
 
 def _save_to_file(result: pd.DataFrame, filename: Path) -> None:
@@ -249,16 +275,16 @@ def _create_cache_key(func: Callable, args: tuple, kwargs: dict) -> str:
     bound_args = sig.bind(*args, **kwargs)
     bound_args.apply_defaults()
 
-    args = dict(bound_args.arguments.items())
+    args_ = dict(bound_args.arguments.items())
 
     # Handle 'self' parameter for methods (ignore it for cache key)
-    if "self" in args:
-        args.pop("self")
+    if "self" in args_:
+        args_.pop("self")
 
     # Create hashable representation
     key_data = {
         "function": f"{func.__module__}.{func.__qualname__}",
-        "args": _make_hashable(args),
+        "args": _make_hashable(args_),
     }
 
     # Create hash
@@ -323,7 +349,7 @@ def _make_hashable(obj: Any) -> Any:
             "columns": tuple(obj.columns.tolist()),
             "dtypes": tuple(obj.dtypes.tolist()),
             "hash": hashlib.md5(
-                pd.util.hash_pandas_object(obj).values.tobytes()
+                pd.util.hash_pandas_object(obj).to_numpy().tobytes()
             ).hexdigest(),
         }
     elif isinstance(obj, dict):
