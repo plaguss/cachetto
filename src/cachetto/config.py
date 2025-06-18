@@ -1,6 +1,6 @@
-from typing import Any
 from dataclasses import dataclass, replace
 from pathlib import Path
+from typing import Any
 
 
 @dataclass

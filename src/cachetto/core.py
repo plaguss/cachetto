@@ -4,7 +4,7 @@ import hashlib
 import inspect
 import re
 from pathlib import Path
-from typing import Any, Callable, TypedDict, TypeVar, Protocol, overload
+from typing import Any, Callable, Protocol, TypedDict, TypeVar, overload
 
 import pandas as pd
 
@@ -19,6 +19,7 @@ TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 class CachedFunction(Protocol):
     """Protocol for functions decorated with @cached"""
+
     def __call__(self, *args: Any, **kwargs: Any) -> Any: ...
     def clear_cache(self) -> None: ...
     @property
