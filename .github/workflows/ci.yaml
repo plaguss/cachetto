@@ -75,7 +75,6 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          # needed for diff-cover
           fetch-depth: 0
 
       - name: get coverage files
@@ -88,7 +87,6 @@ jobs:
         with:
           enable-cache: true
 
-      - run: uv sync --package cachetto --only-dev
       - run: uv run coverage combine coverage
 
       - run: uv run coverage html --show-contexts --title "cachetto coverage for ${{ github.sha }}"
