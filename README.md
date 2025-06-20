@@ -1,10 +1,9 @@
 # cachetto
 Disk-based caching for functions returning pickleable objects and pandas DataFrames, plain and simple.
 
-<!-- [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cachetto)](https://pypi.org/project/cachetto)
+[![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cachetto)](https://pypi.org/project/cachetto)
 [![PyPI](https://img.shields.io/pypi/v/cachetto)](https://pypi.org/project/cachetto)
-[![Tests](https://github.com/plaguss/cachetto/actions/workflows/ci.yml/badge.svg)](https://github.com/plaguss/cachetto/actions/workflows/ci.yml)
- -->
+[![Tests](https://github.com/plaguss/cachetto/actions/workflows/ci.yaml/badge.svg)](https://github.com/plaguss/cachetto/actions/workflows/ci.yaml)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
 
@@ -120,7 +119,33 @@ class MyModel:
 
 ## Development
 
-Work in progress
+### Tests
+
+Every new feature must include the corresponding tests, and ensure the coverage statys at 100% for the CI job to succeed:
+
+```shell
+make unit-tests       # Tests while developing with the default version
+make cov-tests        # Check the coverage (html report generated)
+make test-all-python  # Runs the tests with all the supported python versions
+```
+
+### Lint
+
+Pre-commit is integrated for linting and formatting, and additionally, `mypy` must be run to ensure the typing is correct:
+
+```shell
+make typecheck-mypy
+```
+
+### Release
+
+Locally, running `make release` will build and release the package in PyPI, but the CI is prepared to do it. Bump the version accordingly, create a new tag, and push it, this will trigger the release job:
+
+```shell
+uv version --bump [BUMP]
+git tag v[NEW VERSION]
+git push origin v[NEW VERSION]
+```
 
 ## License
 
