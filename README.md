@@ -1,5 +1,5 @@
 # cachetto
-Disk-based caching for functions returning pandas DataFrames, plain and simple.
+Disk-based caching for functions returning pickleable objects and pandas DataFrames, plain and simple.
 
 <!-- [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/cachetto)](https://pypi.org/project/cachetto)
 [![PyPI](https://img.shields.io/pypi/v/cachetto)](https://pypi.org/project/cachetto)
@@ -18,7 +18,7 @@ This is a simple library, but it can be handy for those who had to deal with cod
 
 Features:
 
-- Seamless caching for functions or methods returning a pandas.DataFrame
+- Seamless caching for functions or methods returning that can be pickled, including pandas dataframes
 
 - Customizable cache directory
 
@@ -26,7 +26,7 @@ Features:
 
 - Toggle caching on or off
 
-- Uses fast, efficient .parquet format
+- Uses pickle to serialize the data
 
 ### Installation
 
@@ -56,10 +56,10 @@ import pandas as pd
 @cached
 def get_data():
     print("Running expensive computation...")
-    return pd.DataFrame({"value": range(10)})
+    return {"df": pd.DataFrame({"value": range(10)}), "meta": ("some data", 1)}
 
-df = get_data()  # Will run and cache
-df = get_data()  # Will load from cache
+result = get_data()  # Will run and cache
+result = get_data()  # Will load from cache
 ```
 
 #### Custom cache directry
@@ -128,4 +128,4 @@ This repository is licensed under the [MIT License](https://github.com/plaguss/c
 
 ## Credits
 
-It's heavily inspired by [cachier](https://github.com/python-cachier/cachier), but with a more narrow focus on functions with pandas dataframes, and just disk-based caching.
+It's heavily inspired by [cachier](https://github.com/python-cachier/cachier), but with a builtin support for pandas dataframes, and just disk-based caching based on pickle.
