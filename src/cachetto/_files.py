@@ -1,8 +1,11 @@
 import pickle
 from pathlib import Path
-from typing import Any, TypedDict
+from typing import Any, TypedDict, Final
 
 from ._utils import get_timestamp
+
+
+FILE_EXTENSION: Final[str]  = "pickle"
 
 
 def read_cached_file(filename: Path) -> Any | None:
@@ -49,7 +52,7 @@ class FilenameInfo(TypedDict):
 
 
 def get_cache_filename(
-    cache_path: Path, func_name: str, cache_key: str, extension: str = "pickle"
+    cache_path: Path, func_name: str, cache_key: str, extension: str = FILE_EXTENSION
 ) -> FilenameInfo:
     """Generates the filename info for the cached result.
 

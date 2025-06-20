@@ -5,7 +5,7 @@ from typing import Any, Callable, Protocol, TypeVar, overload
 import pandas as pd
 
 from ._config import Config
-from ._files import get_cache_filename, read_cached_file, save_to_file
+from ._files import get_cache_filename, read_cached_file, save_to_file, FILE_EXTENSION
 from ._hashing import create_cache_key
 from ._utils import get_func_name, is_cache_invalid, parse_timestamp_from_filename
 
@@ -44,12 +44,12 @@ def cached(
     caching_enabled: bool = True,
     invalid_after: str | None = None,
 ) -> CachedFunction | Callable[[F], CachedFunction]:
-    """Decorator for caching pandas DataFrame return values to disk.
+    """Decorator for caching python functions and class' methods to disk.
 
-    This decorator caches the output of a function that returns a pandas DataFrame,
-    storing it in a specified cache directory as a Parquet file. If the cache exists
-    and is still valid (based on `invalid_after`), it will be loaded instead of
-    recomputing the function.
+    This decorator caches the output of a function that work with python builtin
+    objects, and pandas dataframes storing them in a specified cache directory
+    as a pickle file. If the cache exists and is still valid (based on 
+    `invalid_after`), it will be loaded instead of recomputing the function.
 
     Examples:
         ```py
@@ -73,7 +73,7 @@ def cached(
             If None, the cache is considered always valid.
 
     Returns:
-        Callable: A decorated function that caches its pandas DataFrame output.
+        Callable: A decorated function that caches its output.
 
     Raises:
         ValueError: If `invalid_after` is not a valid duration format.
@@ -84,8 +84,9 @@ def cached(
         cache_dir (Path): Path object representing the cache directory in use.
 
     Note:
-        - Only functions that return a `pandas.DataFrame` will be cached.
-        - Cached files are stored in `.parquet` format.
+        - Only functions that return builtin python objects, including
+        `pandas.DataFrame` will be cached.
+        - Cached files are stored in `.pickle` format.
         - Caching works for both functions and class instance methods.
     """
     from cachetto._config import get_config
@@ -132,7 +133,7 @@ def cached(
         def clear_cache():
             """Clear all cached results for this function."""
             func_prefix = get_func_name(f)
-            for cache_file in cache_path.glob(f"*{func_prefix}*.pickle"):
+            for cache_file in cache_path.glob(f"*{func_prefix}*.{FILE_EXTENSION}"):
                 cache_file.unlink(missing_ok=True)
 
         wrapper.clear_cache = clear_cache  # type: ignore
