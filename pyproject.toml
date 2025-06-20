@@ -10,6 +10,7 @@ readme = "README.md"
 authors = [
     { name = "agustin", email = "agustin.piqueres@gmail.com" }
 ]
+license = "MIT"
 classifiers = [
     "Development Status :: 4 - Beta",
     "Programming Language :: Python",
@@ -19,6 +20,9 @@ classifiers = [
     "Programming Language :: Python :: 3.13",
     "Programming Language :: Python :: Implementation :: CPython",
     "Programming Language :: Python :: Implementation :: PyPy",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Topic :: Software Development :: Libraries :: Python Modules",
 ]
 requires-python = ">=3.10"
 dependencies = [
@@ -35,6 +39,10 @@ dev = [
     "pytest-cov>=6.1.1",
     "ruff>=0.11.11",
 ]
+
+[project.urls]
+Homepage = "https://github.com/plaguss/cachetto/"
+Source = "https://github.com/plaguss/cachetto/"
 
 [tool.ruff]
 line-length = 88
