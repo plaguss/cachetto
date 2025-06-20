@@ -5,7 +5,7 @@ from typing import Any, Callable, Protocol, TypeVar, overload
 import pandas as pd
 
 from ._config import Config
-from ._files import get_cache_filename, read_cached_file, save_to_file, FILE_EXTENSION
+from ._files import FILE_EXTENSION, get_cache_filename, read_cached_file, save_to_file
 from ._hashing import create_cache_key
 from ._utils import get_func_name, is_cache_invalid, parse_timestamp_from_filename
 
@@ -48,7 +48,7 @@ def cached(
 
     This decorator caches the output of a function that work with python builtin
     objects, and pandas dataframes storing them in a specified cache directory
-    as a pickle file. If the cache exists and is still valid (based on 
+    as a pickle file. If the cache exists and is still valid (based on
     `invalid_after`), it will be loaded instead of recomputing the function.
 
     Examples:
@@ -123,9 +123,7 @@ def cached(
 
             result = f(*args, **kwargs)
 
-            # Only cache if result is a DataFrame
-            if isinstance(result, pd.DataFrame):
-                save_to_file(result, cache_filename_info["filename"])
+            save_to_file(result, cache_filename_info["filename"])
 
             return result
 

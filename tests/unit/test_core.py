@@ -9,15 +9,25 @@ import pytest
 from cachetto._core import cached
 
 
+@pytest.fixture
+def sample_dataframe():
+    """Create a sample DataFrame for testing."""
+    return pd.DataFrame({"A": [1, 2, 3], "B": ["x", "y", "z"], "C": [1.1, 2.2, 3.3]})
+
+
+@pytest.fixture
+def nested_dict():
+    """Create a sample DataFrame for testing."""
+    return {
+        "df": pd.DataFrame(
+            {"A": [1, 2, 3], "B": ["x", "y", "z"], "C": [1.1, 2.2, 3.3]}
+        ),
+        "meta": {"other": (1, 2)},
+    }
+
+
 class Testcached:
     """Test suite for the cached decorator."""
-
-    @pytest.fixture
-    def sample_dataframe(self):
-        """Create a sample DataFrame for testing."""
-        return pd.DataFrame(
-            {"A": [1, 2, 3], "B": ["x", "y", "z"], "C": [1.1, 2.2, 3.3]}
-        )
 
     @pytest.fixture
     def mock_config(self, tmp_path):
@@ -27,7 +37,8 @@ class Testcached:
         mock_cfg.caching_enabled = True
         return mock_cfg
 
-    def test_plain_decorator(self, sample_dataframe: pd.DataFrame, tmp_path) -> None:
+    @pytest.mark.parametrize("data_fixture", ["sample_dataframe", "nested_dict"])
+    def test_plain_decorator(self, request, data_fixture, tmp_path) -> None:
         """Test @cached usage."""
         call_count = 0
 
@@ -35,15 +46,22 @@ class Testcached:
 
         set_config(cache_dir=str(tmp_path))
 
+        data = request.getfixturevalue(data_fixture)
+
         @cached
         def test_func():
             nonlocal call_count
             call_count += 1
-            return sample_dataframe
+            return data
 
         # First call should execute function
         result1 = test_func()
-        assert result1.equals(sample_dataframe)
+        if isinstance(data, pd.DataFrame):
+            assert result1.equals(data)
+        else:
+            assert result1["df"].equals(data["df"])
+            assert result1["meta"] == data["meta"]
+
         assert call_count == 1
 
         # Verify cache directory is created and set
@@ -53,7 +71,12 @@ class Testcached:
         # Note: Since the decorator has the caching logic after function execution,
         # the second call will still execute the function but should find cached data
         result2 = test_func()
-        assert result2.equals(sample_dataframe)
+        if isinstance(data, pd.DataFrame):
+            assert result2.equals(data)
+        else:
+            assert result2["df"].equals(data["df"])
+            assert result2["meta"] == data["meta"]
+
         test_func.clear_cache()
 
     def test_decorator_with_cache_dir(
@@ -148,25 +171,6 @@ class Testcached:
         # Different kwargs should execute function
         result3 = create_df(rows=3, prefix="other")
         assert not result3.equals(result1)  # Should be different
-
-    def test_non_dataframe_return(self, tmp_path):
-        """Test function that doesn't return a DataFrame."""
-        call_count = 0
-
-        @cached(cache_dir=tmp_path)
-        def return_string():
-            nonlocal call_count
-            call_count += 1
-            return "not a dataframe"
-
-        # Should execute function each time (no caching for non-DataFrames)
-        result1 = return_string()
-        assert result1 == "not a dataframe"
-        assert call_count == 1
-
-        result2 = return_string()
-        assert result2 == "not a dataframe"
-        assert call_count == 2  # Function called again
 
     def test_clear_cache_method(self, tmp_path, sample_dataframe):
         """Test the clear_cache method added to decorated functions."""

@@ -1,11 +1,10 @@
 import pickle
 from pathlib import Path
-from typing import Any, TypedDict, Final
+from typing import Any, Final, TypedDict
 
 from ._utils import get_timestamp
 
-
-FILE_EXTENSION: Final[str]  = "pickle"
+FILE_EXTENSION: Final[str] = "pickle"
 
 
 def read_cached_file(filename: Path) -> Any | None:
