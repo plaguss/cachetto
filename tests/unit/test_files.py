@@ -1,6 +1,6 @@
 import pickle
-from unittest.mock import patch, mock_open, MagicMock
 from pathlib import Path
+from unittest.mock import MagicMock, mock_open, patch
 
 import pandas as pd
 import pytest
@@ -9,11 +9,14 @@ from cachetto._files import read_cached_file, save_to_file
 
 
 class TestReadCachedFile:
-    @pytest.mark.parametrize("data", [
-        {"foo": "bar"},
-        pd.DataFrame({"a": [1, 2], "b": [3, 4]}),
-        {"meta": "info", "df": pd.DataFrame({"x": [10, 20]})},
-    ])
+    @pytest.mark.parametrize(
+        "data",
+        [
+            {"foo": "bar"},
+            pd.DataFrame({"a": [1, 2], "b": [3, 4]}),
+            {"meta": "info", "df": pd.DataFrame({"x": [10, 20]})},
+        ],
+    )
     def test_read_cached_file_success(self, tmp_path, data):
         filename = tmp_path / "testfile.pkl"
         with open(filename, "wb") as f:
@@ -29,20 +32,23 @@ class TestReadCachedFile:
             else:
                 assert result == data
 
-    @pytest.mark.parametrize("exception", [
-        pickle.UnpicklingError("bad pickle"),
-        EOFError("unexpected EOF"),
-        FileNotFoundError("no such file"),
-        PermissionError("no permission"),
-        AttributeError("bad attribute"),
-        ModuleNotFoundError("module not found"),
-        OSError("os error")
-    ])
+    @pytest.mark.parametrize(
+        "exception",
+        [
+            pickle.UnpicklingError("bad pickle"),
+            EOFError("unexpected EOF"),
+            FileNotFoundError("no such file"),
+            PermissionError("no permission"),
+            AttributeError("bad attribute"),
+            ModuleNotFoundError("module not found"),
+            OSError("os error"),
+        ],
+    )
     def test_read_cached_file_failure(self, exception):
         mock_path = MagicMock(spec=Path)
         mock_path.unlink = MagicMock()
-        
-        with patch("builtins.open", mock_open()) as mock_file:
+
+        with patch("builtins.open", mock_open()) as _:
             with patch("pickle.load", side_effect=exception):
                 result = read_cached_file(mock_path)
 
@@ -67,7 +73,7 @@ class TestSaveToFile:
     def test_save_to_file_pickling_error(self, mock_pickle, mock_open):
         mock_path = MagicMock(spec=Path)
         mock_path.unlink = MagicMock()
-        
+
         save_to_file(object(), mock_path)
 
         mock_path.unlink.assert_called_once_with(missing_ok=True)

@@ -184,7 +184,7 @@ class Testcached:
 
         # Clear cache
         test_func.clear_cache()
-        print("FILES", list(Path(tmp_path).iterdir()))
+
         # Verify cache files are removed
         cache_files_after = list(Path(tmp_path).glob("*test_func*.pickle"))
         assert len(cache_files_after) == 0
