@@ -42,7 +42,7 @@ lint:
 
 .PHONY: typecheck-mypy
 typecheck-mypy:
-	uv run mypy $(sources)
+	uv run mypy src/cachetto
 
 .PHONY: unit-tests
 unit-tests:
