@@ -1,25 +1,42 @@
+import pickle
 from pathlib import Path
-from typing import TypedDict
-
-import pandas as pd
+from typing import Any, TypedDict
 
 from ._utils import get_timestamp
 
 
-def read_cached_file(filename: Path) -> pd.DataFrame | None:
+def read_cached_file(filename: Path) -> Any | None:
     try:
-        return pd.read_parquet(filename)
-    except Exception as e:  # TODO: What errors can happen here?
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    except (
+        pickle.UnpicklingError,
+        EOFError,
+        FileNotFoundError,
+        PermissionError,
+        AttributeError,
+        ModuleNotFoundError,
+        OSError,
+    ) as e:
         # If cache is corrupted, remove it and continue
         print(f"Unhandled exception while loading from cache:\n{e}")
         filename.unlink(missing_ok=True)
         return None
 
 
-def save_to_file(result: pd.DataFrame, filename: Path) -> None:
+def save_to_file(result: Any, filename: Path) -> None:
     try:
-        result.to_parquet(filename)
-    except Exception as e:  # TODO: What errors can happen here?
+        with open(filename, "wb") as f:
+            pickle.dump(result, f, protocol=pickle.HIGHEST_PROTOCOL)
+    except (
+        pickle.PicklingError,
+        TypeError,
+        PermissionError,
+        FileNotFoundError,
+        IsADirectoryError,
+        OSError,
+        AttributeError,
+    ) as e:
         # If caching fails, continue without caching
         print(f"Unhandled exception while caching data:\n{e}")
         filename.unlink(missing_ok=True)
@@ -32,7 +49,7 @@ class FilenameInfo(TypedDict):
 
 
 def get_cache_filename(
-    cache_path: Path, func_name: str, cache_key: str, extension: str = "parquet"
+    cache_path: Path, func_name: str, cache_key: str, extension: str = "pickle"
 ) -> FilenameInfo:
     """Generates the filename info for the cached result.
 
@@ -43,7 +60,7 @@ def get_cache_filename(
         cache_path (Path): Folder where the file will be saved.
         func_name (str): Name of the function.
         cache_key (str): Cached key from the function and args/kwargs.
-        extension (str, optional): File extension. Defaults to "parquet".
+        extension (str, optional): File extension. Defaults to "pickle".
 
     Returns:
         filename (str): Name of the file.

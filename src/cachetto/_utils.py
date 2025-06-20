@@ -1,8 +1,7 @@
 import datetime as dt
+import re
 from pathlib import Path
 from typing import Any
-import re
-
 
 DURATION_PATTERN = re.compile(r"^(\d+(?:\.\d+)?)\s*(d|h|m|w|s|)$")
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"

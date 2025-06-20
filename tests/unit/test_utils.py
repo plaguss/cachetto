@@ -2,7 +2,7 @@ import datetime as dt
 
 import pytest
 
-from cachetto._utils import get_func_name, parse_duration, is_cache_invalid
+from cachetto._utils import get_func_name, is_cache_invalid, parse_duration
 
 
 def sample_function():
@@ -78,31 +78,31 @@ class TestParseDuration:
             ("3.25m", dt.timedelta(minutes=3.25)),
         ],
     )
-    def testparse_duration_valid(self, duration_str: str, expected: dt.timedelta):
+    def test_parse_duration_valid(self, duration_str: str, expected: dt.timedelta):
         assert parse_duration(duration_str) == expected
 
     @pytest.mark.parametrize(
         "invalid_input", ["", "10x", "abc", "1", "h", "10dd", "5hours", "12hm"]
     )
-    def testparse_duration_invalid(self, invalid_input: str) -> None:
+    def test_parse_duration_invalid(self, invalid_input: str) -> None:
         with pytest.raises(ValueError):
             parse_duration(invalid_input)
 
 
 class TestIsCacheInvalid:
-    def testis_cache_invalid_none(self) -> None:
+    def test_is_cache_invalid_none(self) -> None:
         assert is_cache_invalid(dt.datetime.now(), None) is False
 
-    def testis_cache_invalid_expired(self, monkeypatch) -> None:
+    def test_is_cache_invalid_expired(self, monkeypatch) -> None:
         past_time = dt.datetime.now() - dt.timedelta(hours=2)
         assert is_cache_invalid(past_time, "1h") is True
 
-    def testis_cache_invalid_not_expired(self, monkeypatch) -> None:
+    def test_is_cache_invalid_not_expired(self, monkeypatch) -> None:
         now = dt.datetime.now()
-        monkeypatch.setattr("cachetto._core.dt", dt)
+        monkeypatch.setattr("cachetto._utils.dt", dt)
         assert is_cache_invalid(now, "1d") is False
 
-    def testis_cache_invalid_invalid_duration(self, monkeypatch) -> None:
+    def test_is_cache_invalid_invalid_duration(self, monkeypatch) -> None:
         now = dt.datetime.now()
-        monkeypatch.setattr("cachetto._core.dt", dt)
+        monkeypatch.setattr("cachetto._utils.dt", dt)
         assert is_cache_invalid(now, "badformat") is True

@@ -1,5 +1,3 @@
-import datetime as dt
-import hashlib
 import shutil
 import tempfile
 from pathlib import Path
@@ -15,13 +13,6 @@ class Testcached:
     """Test suite for the cached decorator."""
 
     @pytest.fixture
-    def temp_cache_dir(self):
-        """Create a temporary directory for cache testing."""
-        temp_dir = tempfile.mkdtemp()
-        yield temp_dir
-        shutil.rmtree(temp_dir)
-
-    @pytest.fixture
     def sample_dataframe(self):
         """Create a sample DataFrame for testing."""
         return pd.DataFrame(
@@ -29,10 +20,10 @@ class Testcached:
         )
 
     @pytest.fixture
-    def mock_config(self, temp_cache_dir):
+    def mock_config(self, tmp_path):
         """Mock the cached config."""
         mock_cfg = MagicMock()
-        mock_cfg.cache_dir = Path(temp_cache_dir) / "default_cache"
+        mock_cfg.cache_dir = Path(tmp_path) / "default_cache"
         mock_cfg.caching_enabled = True
         return mock_cfg
 
@@ -41,6 +32,7 @@ class Testcached:
         call_count = 0
 
         from cachetto._config import set_config
+
         set_config(cache_dir=str(tmp_path))
 
         @cached
@@ -65,12 +57,12 @@ class Testcached:
         test_func.clear_cache()
 
     def test_decorator_with_cache_dir(
-        self, temp_cache_dir, sample_dataframe: pd.DataFrame
+        self, tmp_path, sample_dataframe: pd.DataFrame
     ) -> None:
         """Test @cached(cache_dir="path") usage."""
         call_count = 0
 
-        @cached(cache_dir=temp_cache_dir)
+        @cached(cache_dir=tmp_path)
         def test_func():
             nonlocal call_count
             call_count += 1
@@ -82,19 +74,19 @@ class Testcached:
         assert call_count == 1
 
         # Verify cache directory is created and set
-        assert test_func.cache_dir == Path(temp_cache_dir)
-        assert Path(temp_cache_dir).exists()
+        assert test_func.cache_dir == Path(tmp_path)
+        assert Path(tmp_path).exists()
 
         # Note: Since the decorator has the caching logic after function execution,
         # the second call will still execute the function but should find cached data
         result2 = test_func()
         assert result2.equals(sample_dataframe)
 
-    def test_caching_disabled(self, temp_cache_dir, sample_dataframe):
+    def test_caching_disabled(self, tmp_path, sample_dataframe):
         """Test decorator with caching disabled."""
         call_count = 0
 
-        @cached(cache_dir=temp_cache_dir, caching_enabled=False)
+        @cached(cache_dir=tmp_path, caching_enabled=False)
         def test_func():
             nonlocal call_count
             call_count += 1
@@ -110,11 +102,11 @@ class Testcached:
         assert result2.equals(sample_dataframe)
         assert call_count == 2
 
-    def test_function_with_arguments(self, temp_cache_dir):
+    def test_function_with_arguments(self, tmp_path):
         """Test caching with function arguments."""
         call_count = 0
 
-        @cached(cache_dir=temp_cache_dir)
+        @cached(cache_dir=tmp_path)
         def create_df(rows, cols):
             nonlocal call_count
             call_count += 1
@@ -135,11 +127,11 @@ class Testcached:
         result3 = create_df(2, 3)
         assert result3.shape == (2, 3)
 
-    def test_function_with_kwargs(self, temp_cache_dir):
+    def test_function_with_kwargs(self, tmp_path):
         """Test caching with keyword arguments."""
         call_count = 0
 
-        @cached(cache_dir=temp_cache_dir)
+        @cached(cache_dir=tmp_path)
         def create_df(rows=3, prefix="col"):
             nonlocal call_count
             call_count += 1
@@ -157,11 +149,11 @@ class Testcached:
         result3 = create_df(rows=3, prefix="other")
         assert not result3.equals(result1)  # Should be different
 
-    def test_non_dataframe_return(self, temp_cache_dir):
+    def test_non_dataframe_return(self, tmp_path):
         """Test function that doesn't return a DataFrame."""
         call_count = 0
 
-        @cached(cache_dir=temp_cache_dir)
+        @cached(cache_dir=tmp_path)
         def return_string():
             nonlocal call_count
             call_count += 1
@@ -176,10 +168,10 @@ class Testcached:
         assert result2 == "not a dataframe"
         assert call_count == 2  # Function called again
 
-    def test_clear_cache_method(self, temp_cache_dir, sample_dataframe):
+    def test_clear_cache_method(self, tmp_path, sample_dataframe):
         """Test the clear_cache method added to decorated functions."""
 
-        @cached(cache_dir=temp_cache_dir)
+        @cached(cache_dir=tmp_path)
         def test_func():
             return sample_dataframe
 
@@ -187,22 +179,22 @@ class Testcached:
         test_func()
 
         # Verify cache files exist
-        cache_files_before = list(Path(temp_cache_dir).glob("*test_func*.parquet"))
+        cache_files_before = list(Path(tmp_path).glob("*test_func*.pickle"))
         assert len(cache_files_before) > 0
 
         # Clear cache
         test_func.clear_cache()
-
+        print("FILES", list(Path(tmp_path).iterdir()))
         # Verify cache files are removed
-        cache_files_after = list(Path(temp_cache_dir).glob("*test_func*.parquet"))
+        cache_files_after = list(Path(tmp_path).glob("*test_func*.pickle"))
         assert len(cache_files_after) == 0
 
-    def test_method_decoration(self, temp_cache_dir, sample_dataframe):
+    def test_method_decoration(self, tmp_path, sample_dataframe):
         """Test decorator on class methods."""
         call_count = 0
 
         class TestClass:
-            @cached(cache_dir=temp_cache_dir)
+            @cached(cache_dir=tmp_path)
             def get_data(self, multiplier=1):
                 nonlocal call_count
                 call_count += 1
@@ -246,10 +238,10 @@ class Testcached:
         finally:
             shutil.rmtree(temp_dir)
 
-    def test_invalid_after_parameter(self, temp_cache_dir, sample_dataframe):
+    def test_invalid_after_parameter(self, tmp_path, sample_dataframe):
         """Test the invalid_after parameter functionality."""
 
-        @cached(cache_dir=temp_cache_dir, invalid_after="1h")
+        @cached(cache_dir=tmp_path, invalid_after="1h")
         def test_func():
             return sample_dataframe
 
@@ -258,10 +250,10 @@ class Testcached:
         result = test_func()
         assert result.equals(sample_dataframe)
 
-    def test_wraps_preservation(self, temp_cache_dir, sample_dataframe):
+    def test_wraps_preservation(self, tmp_path, sample_dataframe):
         """Test that function metadata is preserved using functools.wraps."""
 
-        @cached(cache_dir=temp_cache_dir)
+        @cached(cache_dir=tmp_path)
         def documented_function():
             """This function has documentation."""
             return sample_dataframe
@@ -270,10 +262,10 @@ class Testcached:
         assert documented_function.__name__ == "documented_function"
         assert documented_function.__doc__ == "This function has documentation."
 
-    def test_config_fallback(self, temp_cache_dir, sample_dataframe):
+    def test_config_fallback(self, tmp_path, sample_dataframe):
         """Test fallback to config when parameters are not provided."""
         mock_cfg = MagicMock()
-        mock_cfg.cache_dir = Path(temp_cache_dir) / "fallback_cache"
+        mock_cfg.cache_dir = Path(tmp_path) / "fallback_cache"
         mock_cfg.caching_enabled = False
         mock_cfg.invalid_after = None
 

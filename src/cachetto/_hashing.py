@@ -1,6 +1,6 @@
-from typing import Callable, Any
-import inspect
 import hashlib
+import inspect
+from typing import Any, Callable
 
 import pandas as pd
 

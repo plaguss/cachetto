@@ -1,10 +1,10 @@
-from typing import Any
 import hashlib
+from typing import Any
 
 import pandas as pd
 import pytest
 
-from cachetto._hashing import make_hashable, create_cache_key
+from cachetto._hashing import create_cache_key, make_hashable
 
 
 class TestMakeHashable:

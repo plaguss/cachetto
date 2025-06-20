@@ -1,16 +1,13 @@
-import datetime as dt
 import functools
-import re
 from pathlib import Path
 from typing import Any, Callable, Protocol, TypeVar, overload
 
 import pandas as pd
 
 from ._config import Config
+from ._files import get_cache_filename, read_cached_file, save_to_file
 from ._hashing import create_cache_key
-from ._utils import parse_timestamp_from_filename, get_func_name, is_cache_invalid
-from ._files import read_cached_file, save_to_file, get_cache_filename
-
+from ._utils import get_func_name, is_cache_invalid, parse_timestamp_from_filename
 
 F = TypeVar("F", bound=Callable[..., Any])
 
@@ -135,7 +132,7 @@ def cached(
         def clear_cache():
             """Clear all cached results for this function."""
             func_prefix = get_func_name(f)
-            for cache_file in cache_path.glob(f"*{func_prefix}*.parquet"):
+            for cache_file in cache_path.glob(f"*{func_prefix}*.pickle"):
                 cache_file.unlink(missing_ok=True)
 
         wrapper.clear_cache = clear_cache  # type: ignore

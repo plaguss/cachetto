@@ -17,7 +17,9 @@ def set_config(**params: Any) -> None:
     """Configures global configuration."""
     import cachetto._config
 
-    valid_params = {k: v for k, v in params.items() if hasattr(cachetto._config._cfg, k)}
+    valid_params = {
+        k: v for k, v in params.items() if hasattr(cachetto._config._cfg, k)
+    }
     cachetto._config._cfg = replace(
         cachetto._config._cfg,
         **valid_params,
