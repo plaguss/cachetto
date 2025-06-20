@@ -15,31 +15,31 @@ _cfg = Config()
 
 def set_config(**params: Any) -> None:
     """Configures global configuration."""
-    import cachetto.config
+    import cachetto._config
 
-    valid_params = {k: v for k, v in params.items() if hasattr(cachetto.config._cfg, k)}
-    cachetto.config._cfg = replace(
-        cachetto.config._cfg,
+    valid_params = {k: v for k, v in params.items() if hasattr(cachetto._config._cfg, k)}
+    cachetto._config._cfg = replace(
+        cachetto._config._cfg,
         **valid_params,
     )
 
 
 def get_config() -> Config:
     """Get the global config."""
-    import cachetto.config
+    import cachetto._config
 
-    return cachetto.config._cfg
+    return cachetto._config._cfg
 
 
 def enable_caching():
     """Enable caching globally."""
-    import cachetto.config
+    import cachetto._config
 
-    cachetto.config._cfg.caching_enabled = True
+    cachetto._config._cfg.caching_enabled = True
 
 
 def disable_caching():
     """Disable caching globally."""
-    import cachetto.config
+    import cachetto._config
 
-    cachetto.config._cfg.caching_enabled = False
+    cachetto._config._cfg.caching_enabled = False
