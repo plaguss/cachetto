@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "cachetto"
-version = "0.0.1"
+version = "1.0.0"
 description = "Disk-based caching for functions returning pickleable objects and pandas DataFrames, plain and simple."
 readme = "README.md"
 authors = [
