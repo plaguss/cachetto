@@ -4,7 +4,11 @@ from typing import Any
 import pandas as pd
 import pytest
 
-from cachetto._hashing import create_cache_key, make_hashable
+from cachetto._hashing import (
+    _cast_unhashable_columns_to_str,
+    create_cache_key,
+    make_hashable,
+)
 
 
 class TestMakeHashable:
@@ -222,3 +226,42 @@ class TestCreateCacheKey:
         expected_str = str(expected_data)
         expected_hash = hashlib.md5(expected_str.encode()).hexdigest()
         assert key == expected_hash
+
+
+class UnhashableObject:
+    def __init__(self, value):
+        self.value = value
+
+    # Deliberately disable __hash__ to trigger TypeError
+    __hash__ = None
+
+
+@pytest.mark.parametrize(
+    "input_df, expected_unhashable_cols",
+    [
+        (pd.DataFrame({"a": [1, 2, 3], "b": ["x", "y", "z"]}), []),
+        (pd.DataFrame({"a": [1, 2, 3], "b": [[1], [2], [3]]}), ["b"]),
+        (pd.DataFrame({"a": [[1], [2], [3]], "b": [[4], [5], [6]]}), ["a", "b"]),
+        (pd.DataFrame({"a": [None, None], "b": [[1], [2]]}), ["b"]),
+        (pd.DataFrame({"a": [], "b": []}), []),
+        (pd.DataFrame({"a": [{"x": 1}, {"y": 2}], "b": [1, 2]}), ["a"]),
+        (
+            pd.DataFrame(
+                {"a": [UnhashableObject(1), UnhashableObject(2)], "b": ["ok", "fine"]}
+            ),
+            ["a"],
+        ),
+    ],
+)
+def test_cast_unhashable_columns_to_str(input_df, expected_unhashable_cols):
+    result_df = _cast_unhashable_columns_to_str(input_df)
+
+    for col in input_df.columns:
+        if col in expected_unhashable_cols:
+            assert result_df[col].apply(type).eq(str).all(), (
+                f"Column '{col}' should be cast to str"
+            )
+        else:
+            pd.testing.assert_series_equal(
+                result_df[col], input_df[col], check_names=False
+            )
