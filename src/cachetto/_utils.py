@@ -8,7 +8,7 @@ TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 
 
 def get_func_name(func: Any) -> str:
-    return f"{func.__module__}_{func.__qualname__.replace('.', '_').replace('<', '_').replace('>', '_')}"
+    return f"{func.__module__.replace('.', '_')}_{func.__qualname__.replace('.', '_').replace('<', '_').replace('>', '_')}"
 
 
 def get_timestamp() -> str:
