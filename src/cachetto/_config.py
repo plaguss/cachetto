@@ -8,6 +8,7 @@ class Config:
     cache_dir: Path = Path.home() / ".cache" / "cachetto"
     caching_enabled: bool = True
     invalid_after: str | None = None
+    verbose: bool = True
 
 
 _cfg = Config()
