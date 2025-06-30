@@ -117,6 +117,19 @@ class MyModel:
         return pd.DataFrame({"model": ["A", "B", "C"]})
 ```
 
+#### Get the name of the file loaded
+
+In case you want to keep track of files loaded from cache, use the verbose option:
+
+```py
+@cached(verbose=True)
+def get_data_verbose():
+    return pd.DataFrame({"timestamp": [pd.Timestamp.now()]})
+
+get_data_verbose()
+get_data_verbose()
+```
+
 ## Development
 
 ### Tests

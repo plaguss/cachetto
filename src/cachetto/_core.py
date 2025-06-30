@@ -43,6 +43,7 @@ def cached(
     cache_dir: str | None = None,
     caching_enabled: bool = True,
     invalid_after: str | None = None,
+    verbose: bool = False,
 ) -> CachedFunction | Callable[[F], CachedFunction]:
     """Decorator for caching python functions and class' methods to disk.
 
@@ -112,13 +113,15 @@ def cached(
                 cache_path, func_name=get_func_name(f), cache_key=cache_key
             )
 
-            (success, data) = _try_load_from_cache(
+            (cached_filename, data) = _try_load_from_cache(
                 cache_path,
                 cache_filename_info["filename_start"],
                 func_args["invalid_after"],
             )
 
-            if success:
+            if cached_filename:
+                log = print if verbose else lambda x: None
+                log(f"Cache hit: '{cached_filename}'")
                 return data
 
             result = f(*args, **kwargs)
@@ -159,7 +162,20 @@ def _get_defaults_from_config(config: Config, **kwargs) -> dict:
 
 def _try_load_from_cache(
     cache_path: Path, filename_start: str, invalid_after: str | None
-) -> tuple[bool, pd.DataFrame | None]:
+) -> tuple[Path | None, pd.DataFrame | None]:
+    """Checks if there's a file that can be loaded from cache.
+
+    Args:
+        cache_path (Path): Folder to look for the data.
+        filename_start (str): Beginning of the file name to track it.
+        invalid_after (str | None): Pattern to determine if a file is
+            valid.
+
+    Returns:
+        tuple[Path | None, pd.DataFrame | None]: If found, it will
+            return a tuple with the Path of the file and the data,
+            otherwise a tuple of None and None.
+    """
     # Check if there's any file that looks like our cached file:
     candidates: list[Path] = []
     for file in cache_path.iterdir():
@@ -169,5 +185,5 @@ def _try_load_from_cache(
         cache_file = sorted(candidates)[-1]  # Just checking the last created is enough
         cache_timestamp = parse_timestamp_from_filename(cache_file)
         if not is_cache_invalid(cache_timestamp, invalid_after):
-            return (True, read_cached_file(cache_file))
-    return (False, None)
+            return (cache_file, read_cached_file(cache_file))
+    return (None, None)
