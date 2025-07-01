@@ -32,8 +32,9 @@ def cached(
     func: None = None,
     *,
     cache_dir: str | None = None,
-    caching_enabled: bool = True,
+    caching_enabled: bool | None = None,
     invalid_after: str | None = None,
+    verbose: bool | None = None,
 ) -> Callable[[F], CachedFunction]: ...
 
 
@@ -41,9 +42,9 @@ def cached(
     func: F | None = None,
     *,
     cache_dir: str | None = None,
-    caching_enabled: bool = True,
+    caching_enabled: bool | None = None,
     invalid_after: str | None = None,
-    verbose: bool = False,
+    verbose: bool | None = False,
 ) -> CachedFunction | Callable[[F], CachedFunction]:
     """Decorator for caching python functions and class' methods to disk.
 
@@ -72,6 +73,7 @@ def cached(
         invalid_after (str | None): Duration string (e.g. '1d',
             '6h') specifying how long the cache remains valid.
             If None, the cache is considered always valid.
+        verbose (bool | None): Whether to print when the cache was hit.
 
     Returns:
         Callable: A decorated function that caches its output.
@@ -90,16 +92,16 @@ def cached(
         - Cached files are stored in `.pickle` format.
         - Caching works for both functions and class instance methods.
     """
-    from cachetto._config import get_config
-
-    func_args = _get_defaults_from_config(
-        get_config(),
-        cache_dir=cache_dir,
-        caching_enabled=caching_enabled,
-        invalid_after=invalid_after,
-    )
 
     def decorator(f: F) -> CachedFunction:
+        from cachetto._config import get_config
+
+        func_args = _get_defaults_from_config(
+            get_config(),
+            cache_dir=cache_dir,
+            caching_enabled=caching_enabled,
+            invalid_after=invalid_after,
+        )
         cache_path = Path(func_args["cache_dir"])
         cache_path.mkdir(parents=True, exist_ok=True)
 
